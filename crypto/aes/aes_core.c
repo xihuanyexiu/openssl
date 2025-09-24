@@ -1,46 +1,4 @@
-/*
- * Copyright 2002-2022 The OpenSSL Project Authors. All Rights Reserved.
- *
- * Licensed under the Apache License 2.0 (the "License").  You may not use
- * this file except in compliance with the License.  You can obtain a copy
- * in the file LICENSE in the source distribution or at
- * https://www.openssl.org/source/license.html
- */
 
-/**
- * rijndael-alg-fst.c
- *
- * @version 3.0 (December 2000)
- *
- * Optimised ANSI C code for the Rijndael cipher (now AES)
- *
- * @author Vincent Rijmen
- * @author Antoon Bosselaers
- * @author Paulo Barreto
- *
- * This code is hereby placed in the public domain.
- *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ''AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
- * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
- * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/* Note: rewritten a little bit to provide error control and an OpenSSL-
-   compatible API */
-
-/*
- * AES low level APIs are deprecated for public use, but still ok for internal
- * use where we're using them to implement the higher level EVP interface, as is
- * the case here.
- */
 #include "internal/deprecated.h"
 
 #include <assert.h>
@@ -52,6 +10,11 @@
 
 #if defined(OPENSSL_AES_CONST_TIME) && !defined(AES_ASM)
 
+//跨平台的整数常量和数据类型处理
+//根据不同编译器和平台，选择正确的 64 位无符号整数常量写法。
+//Windows + MSVC → UI64
+//64 位 Unix 平台 → UL
+//其他平台（最常见） → ULL
 # if (defined(_WIN32) || defined(_WIN64)) && !defined(__MINGW32__)
 #  define U64(C) C##UI64
 # elif defined(__arch64__)
@@ -60,6 +23,10 @@
 #  define U64(C) C##ULL
 # endif
 
+//类型重解释工具，用于在字节、32 位、64 位之间快速转换和访问同一块内存。
+//b[8]：按字节访问（8 个 8-bit 字节）。
+//w[2]：按 32 位字访问（2 个 32-bit word）。
+//d：按 64 位整数访问（1 个 64-bit double word）。
 typedef union {
     unsigned char b[8];
     u32 w[2];
